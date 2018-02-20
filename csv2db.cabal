@@ -1,0 +1,33 @@
+name:                csv2db
+version:             0.1
+synopsis:            Easily import CSV files into your database
+-- description:         
+license:             AllRightsReserved
+license-file:        LICENSE
+author:              Doug Beardsley
+maintainer:          mightybyte@gmail.com
+copyright:           Doug Beardsley
+category:            Data
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+executable csv2db
+  main-is:             Main.hs
+  other-modules:
+    CsvDb.Schema
+  -- other-extensions:    
+  build-depends:
+      ansi-wl-pprint        >= 0.6.7  && < 0.7
+    , base                  >= 4.9    && < 4.11
+    , bytestring            >= 0.10   && < 0.11
+    , conduit               >= 1.2    && < 1.3
+    , conduit-extra         >= 1.1    && < 1.4
+    , containers            >= 0.5    && < 0.6
+    , csv-conduit           >= 0.6.3  && < 0.7
+    , errors                >= 2.2    && < 2.3
+    , optparse-applicative  >= 0.13.0 && < 0.14
+    , resourcet             >= 1.1    && < 1.2
+    , text                  >= 1.2    && < 1.3
+  hs-source-dirs:      src
+  default-language:    Haskell2010
