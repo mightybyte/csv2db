@@ -5,14 +5,15 @@ module Main where
 import           Data.Monoid
 import           Options.Applicative
 import           System.IO
-import           Text.PrettyPrint.ANSI.Leijen (Doc, string)
 ------------------------------------------------------------------------------
+import qualified CsvDb.Create as Create
 import qualified CsvDb.Import as Import
 import qualified CsvDb.Schema as Schema
 ------------------------------------------------------------------------------
 
 data Commands
-  = SchemaCmd Schema.Options
+  = CreateCmd Create.Options
+  | SchemaCmd Schema.Options
   | ImportCmd Import.Options
 
 ------------------------------------------------------------------------------
@@ -22,6 +23,7 @@ main = do
 
     let commands = commandGroup "Commands"
           <> command "schema" (SchemaCmd <$> Schema.opts)
+          <> command "create" (CreateCmd <$> Create.opts)
           <> command "import" (ImportCmd <$> Import.opts)
 
     let optParser :: Parser Commands
@@ -36,5 +38,6 @@ main = do
 
     c <- execParser opts
     case c of
-      SchemaCmd o -> Schema.cmd o
+      CreateCmd o -> Create.cmd o
       ImportCmd o -> Import.cmd o
+      SchemaCmd o -> Schema.cmd o

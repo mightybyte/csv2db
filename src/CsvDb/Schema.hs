@@ -5,23 +5,25 @@
 {-# LANGUAGE TupleSections       #-}
 
 -- | This module should be imported qualified
-module CsvDb.Schema where
---  ( Options
---  , opts
---  , cmd
---  ) where
+module CsvDb.Schema
+  ( Options(..)
+  , opts
+  , cmd
+  , TypeStats
+  , getFirstRow
+  , getTypeStats
+  , inferSchemaConservative
+  , createTableQueryPostgres
+  ) where
 
 ------------------------------------------------------------------------------
 import           Control.Error
-import           Control.Monad
 import           Control.Monad.Trans.Resource
-import           Data.Bifunctor
 import           Data.ByteString (ByteString)
 import           Data.Conduit
-import qualified Data.Conduit.Binary as C
+import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.List as C
 import           Data.CSV.Conduit
-import           Data.Int
 import           Data.List
 import           Data.Map (Map)
 import qualified Data.Map as M
@@ -42,7 +44,7 @@ import           Text.Printf
 -- Not prefixing these field names because they should not be exported.
 data Options = Options
     { optFilename :: String
-    , optTrim :: Bool
+    , optNoStrip :: Bool
     }
 
 
@@ -61,26 +63,39 @@ sample = Options
       ( metavar "<filename>"
      <> help "Name of CSV file" )
   <*> switch
-      ( short 't'
-     <> help "Trim whitespace from all fields before inferring schema" )
+      ( long "no-strip"
+     <> help "Don't strip leading and trailing whitespace from all fields" )
 
 stripBS :: ByteString -> ByteString
 stripBS bs = either (const bs) (encodeUtf8 . T.strip) $ decodeUtf8' bs
 
+
+------------------------------------------------------------------------------
+-- | Reads CSV file and returns a TypeStats data structure which has
+-- information that can be used to infer a schema that fits the data.
+getTypeStats :: Options -> IO TypeStats
+getTypeStats Options{..} = do
+    let f = if optNoStrip then id else stripBS
+    runResourceT (processor optFilename f)
+
+getFirstRow :: String -> IO (Maybe (Row ByteString))
+getFirstRow file = runResourceT (CB.sourceFile file $= intoCSV defCSVSettings $$ C.head)
+
 cmd :: Options -> IO ()
-cmd Options{..} = do
-    let f = if optTrim then stripBS else id
-    res <- runResourceT (processor optFilename f)
+cmd o@Options{..} = do
+    res <- getTypeStats o
+    Just headerRow <- getFirstRow optFilename
+    print headerRow
     printf "Max number of parsed rows: %d\n"
            (M.foldl' max 0 $ foldl' max 0 <$> res)
     putStrLn $ prettyTypeStats res
     let schema = inferSchemaConservative res
-    putStrLn $ createTableQueryPostgres schema
+    putStrLn $ createTableQueryPostgres schema headerRow "my_table"
 
 ------------------------------------------------------------------------------
 processor :: FilePath -> (ByteString -> ByteString) -> ResourceT IO TypeStats
 processor file f =
-    C.sourceFile file $=
+    CB.sourceFile file $=
     intoCSV defCSVSettings $=
     C.map (fmap f) $$
     C.fold makeSchema mempty
@@ -127,7 +142,7 @@ parseInteger = either (const Nothing) go . decodeUtf8'
   where
     go t =
       case signed decimal t of
-        Left s -> Nothing
+        Left _ -> Nothing
         -- The decimal function doesn't require that the whole string be an
         -- integer.  Only that the string starts with an integer.  So we can
         -- only return true if the trailing string was empty.
@@ -140,7 +155,7 @@ isInt = isJust . parseInteger
 parseDouble :: Text -> Maybe Double
 parseDouble t =
   case double t of
-    Left s -> Nothing
+    Left _ -> Nothing
     -- The double function doesn't require that the whole string be an
     -- integer.  Only that the string starts with an integer.  So we can
     -- only return true if the trailing string was empty.
@@ -212,6 +227,8 @@ makeSchema :: TypeStats -> MapRow ByteString -> TypeStats
 makeSchema s r = foldl' addToSchema s $ M.toList r
 
 ------------------------------------------------------------------------------
+-- | Converts TypeStats into the most conservative schema that should be
+-- guaranteed to work with all the data.
 inferSchemaConservative :: TypeStats -> Map ByteString SqlType
 inferSchemaConservative = fmap inferFieldTypeConservative
 
@@ -226,10 +243,21 @@ inferFieldTypeConservative m =
              else Nothing
     highestCount = M.foldl' max 0 m
 
-createTableQueryPostgres :: Map ByteString SqlType -> String
-createTableQueryPostgres schema = unlines
-    [ "CREATE TABLE my_table ("
-    , intercalate ", \n" $ map mkField (M.toList schema)
+------------------------------------------------------------------------------
+-- | Construct a Postgres-compatible SQL query that will create a table to
+-- hold the data in a CSV file.
+createTableQueryPostgres
+    :: Map ByteString SqlType
+    -- ^ Table schema
+    -> [ByteString]
+    -- ^ The order of the columns
+    -> String
+    -- ^ Table name (must be properly quoted for SQL)
+    -> String
+    -- ^ SQL query
+createTableQueryPostgres schema fields table = unlines
+    [ printf "CREATE TABLE %s (" table
+    , intercalate ", \n" $ map (\f -> mkField (f, fromJust $ M.lookup f schema)) fields
     , ");"
     ]
   where
