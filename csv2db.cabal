@@ -15,6 +15,8 @@ cabal-version:       >=1.10
 executable csv2db
   main-is:             Main.hs
   other-modules:
+    CsvDb.Common
+    CsvDb.Clean
     CsvDb.Create
     CsvDb.Import
     CsvDb.Schema

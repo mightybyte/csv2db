@@ -38,6 +38,8 @@ import           Options.Applicative
 import           Text.PrettyPrint.ANSI.Leijen (string, Doc)
 import           Text.Printf
 ------------------------------------------------------------------------------
+import           CsvDb.Common
+------------------------------------------------------------------------------
 
 
 ------------------------------------------------------------------------------
@@ -65,9 +67,6 @@ sample = Options
   <*> switch
       ( long "no-strip"
      <> help "Don't strip leading and trailing whitespace from all fields" )
-
-stripBS :: ByteString -> ByteString
-stripBS bs = either (const bs) (encodeUtf8 . T.strip) $ decodeUtf8' bs
 
 
 ------------------------------------------------------------------------------
