@@ -20,7 +20,7 @@ import qualified Data.Conduit.List as C
 import           Data.CSV.Conduit
 import           Data.Monoid
 import           Options.Applicative
-import           Text.PrettyPrint.ANSI.Leijen (string, Doc)
+import           Text.PrettyPrint.ANSI.Leijen (string, fillBreak, Doc)
 ------------------------------------------------------------------------------
 import           CsvDb.Common
 ------------------------------------------------------------------------------
@@ -37,11 +37,15 @@ data Options = Options
 
 opts :: ParserInfo Options
 opts = info sample
-    ( fullDesc <> progDescDoc (Just desc))
+    ( fullDesc <> progDescDoc (Just desc) <> footerDoc (Just verboseDesc))
 
 
 desc :: Doc
 desc = string "Clean CSV data"
+
+
+verboseDesc :: Doc
+verboseDesc = string "Cleans CSV data by dropping unparsable rows and removing leading and trailing whitespace from columns."
 
 
 sample :: Parser Options
