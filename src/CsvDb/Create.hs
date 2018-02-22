@@ -6,12 +6,14 @@
 
 -- | This module should be imported qualified
 module CsvDb.Create
-  ( Options
+  ( Options(..)
   , opts
   , cmd
+  , doCreate
   ) where
 
 ------------------------------------------------------------------------------
+import           Data.Int
 import           Data.Monoid
 import qualified Data.Text as T
 import           Data.Text.Encoding
@@ -19,8 +21,8 @@ import           Database.PostgreSQL.Simple
 import           Database.PostgreSQL.Simple.Types
 import           Options.Applicative
 import           Text.PrettyPrint.ANSI.Leijen (string, Doc)
-import           Text.Printf
 ------------------------------------------------------------------------------
+import           CsvDb.Common
 import qualified CsvDb.Schema as Schema
 ------------------------------------------------------------------------------
 
@@ -33,32 +35,6 @@ data Options = Options
     , optTableName :: String
     , optDbConn :: ConnectInfo
     }
-
-connectInfoParser :: Parser ConnectInfo
-connectInfoParser = ConnectInfo
-  <$> strOption
-      ( short 'h'
-     <> long "host"
-     <> value "localhost"
-     <> help "Database host" )
-  <*> option auto
-      ( short 'p'
-     <> long "port"
-     <> value 5432
-     <> help "Database port" )
-  <*> strOption
-      ( short 'u'
-     <> long "user"
-     <> help "Database user" )
-  <*> strOption
-      ( short 'w'
-     <> long "password"
-     <> value ""
-     <> help "Database password" )
-  <*> strOption
-      ( short 'd'
-     <> long "dbname"
-     <> help "Database name" )
 
 opts :: ParserInfo Options
 opts = info sample
@@ -76,7 +52,7 @@ sample = Options
      <> help "Name of CSV file" )
   <*> switch
       ( long "no-strip"
-     <> help "Strip leading and trailing whitespace from all fields before inferring schema" )
+     <> help "Don't strip leading and trailing whitespace from all fields" )
   <*> strOption
       ( short 't'
      <> long "table"
@@ -86,10 +62,15 @@ sample = Options
 cmd :: Options -> IO ()
 cmd Options{..} = do
     conn <- connect optDbConn
+    doCreate conn optFilename optNoStrip optTableName
+    return ()
+
+------------------------------------------------------------------------------
+-- | Infer schema and create the table
+doCreate :: Connection -> String -> Bool -> String -> IO Int64
+doCreate conn optFilename optNoStrip optTableName = do
     Just headerRow <- Schema.getFirstRow optFilename
     tstats <- Schema.getTypeStats (Schema.Options optFilename optNoStrip)
     let schema = Schema.inferSchemaConservative tstats
         qstr = Schema.createTableQueryPostgres schema headerRow optTableName
-    res <- execute_ conn (Query $ encodeUtf8 $ T.pack qstr)
-    printf "%d rows inserted\n" res
-
+    execute_ conn (Query $ encodeUtf8 $ T.pack qstr)

@@ -29,10 +29,8 @@ import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Text.Encoding
-import           Data.Text.Read
 import           Data.Word
 import           Options.Applicative
 import           Text.PrettyPrint.ANSI.Leijen (string, Doc)
@@ -119,56 +117,6 @@ prettySqlType SqlTime = "time"
 prettySqlType SqlDateTime = "datetime"
 prettySqlType SqlText = "text"
 prettySqlType SqlBytes = "bytes"
-
-parseBool :: ByteString -> Maybe Bool
-parseBool = either (const Nothing) (go . T.toLower) . decodeUtf8'
-  where
-    go "false" = Just False
-    go "true" = Just True
-    go "f" = Just False
-    go "t" = Just True
-    go "off" = Just False
-    go "on" = Just True
-    go "0" = Just False
-    go "1" = Just True
-    go _ = Nothing
-
-isBool :: ByteString -> Bool
-isBool = isJust . parseBool
-
-parseInteger :: ByteString -> Maybe Integer
-parseInteger = either (const Nothing) go . decodeUtf8'
-  where
-    go t =
-      case signed decimal t of
-        Left _ -> Nothing
-        -- The decimal function doesn't require that the whole string be an
-        -- integer.  Only that the string starts with an integer.  So we can
-        -- only return true if the trailing string was empty.
-        Right (n, "") -> Just n
-        Right _ -> Nothing
-
-isInt :: ByteString -> Bool
-isInt = isJust . parseInteger
-
-parseDouble :: Text -> Maybe Double
-parseDouble t =
-  case double t of
-    Left _ -> Nothing
-    -- The double function doesn't require that the whole string be an
-    -- integer.  Only that the string starts with an integer.  So we can
-    -- only return true if the trailing string was empty.
-    Right (x, "") -> Just x
-    Right _ -> Nothing
-
-isDouble :: ByteString -> Bool
-isDouble = either (const False) (isJust . parseDouble) . decodeUtf8'
-
-parseText :: ByteString -> Maybe Text
-parseText = hush . decodeUtf8'
-
-isText :: ByteString -> Bool
-isText = isJust . parseText
 
 ------------------------------------------------------------------------------
 -- | The outer map key is the field name.  The inner map holds all the types

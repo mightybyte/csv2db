@@ -7,7 +7,7 @@
 
 -- | This module should be imported qualified
 module CsvDb.Clean
-  ( Options
+  ( Options(..)
   , opts
   , cmd
   ) where
@@ -20,7 +20,7 @@ import qualified Data.Conduit.List as C
 import           Data.CSV.Conduit
 import           Data.Monoid
 import           Options.Applicative
-import           Text.PrettyPrint.ANSI.Leijen (string, fillBreak, Doc)
+import           Text.PrettyPrint.ANSI.Leijen (string, Doc)
 ------------------------------------------------------------------------------
 import           CsvDb.Common
 ------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ data Options = Options
 
 opts :: ParserInfo Options
 opts = info sample
-    ( fullDesc <> progDescDoc (Just desc) <> footerDoc (Just verboseDesc))
+    (fullDesc <> progDescDoc (Just desc) <> footerDoc (Just verboseDesc))
 
 
 desc :: Doc
