@@ -42,6 +42,15 @@ connectInfoParser = ConnectInfo
      <> long "dbname"
      <> help "Database name" )
 
+------------------------------------------------------------------------------
+decideConnectionMethod :: Maybe ConnectInfo -> Maybe String -> IO Connection
+decideConnectionMethod mconn mconnstr =
+    case (mconn, mconnstr) of
+      (Nothing, Nothing) -> error "Error: Must specify either --connstr or individual database connection options"
+      (Just _, Just _) -> error "Error: cannot specify both --connstr and individual connection options"
+      (Just c, Nothing) -> connect c
+      (Nothing, Just connstr) -> connectPostgreSQL $ encodeUtf8 $ T.pack connstr
+
 parseBool :: ByteString -> Maybe Bool
 parseBool = either (const Nothing) (go . T.toLower) . decodeUtf8'
   where

@@ -40,7 +40,8 @@ data Options = Options
     , optNoClean :: Bool
     , optNoStrip :: Bool
     , optTableName :: String
-    , optDbConn :: ConnectInfo
+    , optDbConn :: Maybe ConnectInfo
+    , optDbConnStr :: Maybe String
     }
 
 opts :: ParserInfo Options
@@ -69,7 +70,10 @@ sample = Options
       ( short 't'
      <> long "table"
      <> help "Database table name" )
-  <*> connectInfoParser
+  <*> optional connectInfoParser
+  <*> optional (strOption
+      ( long "connstr"
+     <> help "Database connection string" ))
 
 copyCsv
     :: Connection
@@ -100,7 +104,7 @@ doesTableExist conn table = do
 ------------------------------------------------------------------------------
 cmd :: Options -> IO ()
 cmd Options{..} = do
-    conn <- connect optDbConn
+    conn <- decideConnectionMethod optDbConn optDbConnStr
     printf "Checking whether table %s exists...\n" optTableName
     tableExists <- doesTableExist conn optTableName
     unless tableExists $ do

@@ -33,7 +33,8 @@ data Options = Options
     { optFilename :: String
     , optNoStrip :: Bool
     , optTableName :: String
-    , optDbConn :: ConnectInfo
+    , optDbConn :: Maybe ConnectInfo
+    , optDbConnStr :: Maybe String
     }
 
 opts :: ParserInfo Options
@@ -57,11 +58,14 @@ sample = Options
       ( short 't'
      <> long "table"
      <> help "Database table name" )
-  <*> connectInfoParser
+  <*> optional connectInfoParser
+  <*> optional (strOption
+      ( long "connstr"
+     <> help "Database connection string" ))
 
 cmd :: Options -> IO ()
 cmd Options{..} = do
-    conn <- connect optDbConn
+    conn <- decideConnectionMethod optDbConn optDbConnStr
     doCreate conn optFilename optNoStrip optTableName
     return ()
 
