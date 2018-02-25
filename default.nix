@@ -16,13 +16,13 @@
     source-overrides =
       { # Use a specific hackage version
         # io-streams = "1.4.0.0";
-        #
+
         # Use a particular commit from github
-        # umzug = pkgs.fetchFromGitHub
-        #   { owner = "k0001";
-        #     repo = "umzug";
-        #     rev = "bd07d8988a0de2de0f116482c9187aa36af728f6";
-        #     sha256 = "0phar79fky4yzv4hq28py18i4iw779gp5n327xx76mrj7yj87id3";
-        #   };
+        csv-conduit = pkgs.fetchFromGitHub
+          { owner = "mightybyte";
+            repo = "csv-conduit";
+            rev = "62ca236012e93e0ab66c1838055dc5fcea3d4b29";
+            sha256 = "1hzsr0p75r59bzl9vfdxq0hb3rmw7xy4n8yi7cd28fkaykiby2fz";
+          };
       };
   }
