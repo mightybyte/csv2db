@@ -144,7 +144,7 @@ makeFieldGraph m = unlines $ map makeRow sqlTypes
   where
     sqlTypes = [minBound..maxBound]
     maxVal = M.foldl' max 0 m
-    binSize = maxVal `div` 68
+    binSize = max 1 $ maxVal `div` 68
     makeRow ty = printf "%8s |%s (%d)"
                         (prettySqlType ty)
                         (padRight 68 $ valRep $ M.lookup ty m)
